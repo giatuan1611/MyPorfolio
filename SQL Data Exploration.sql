@@ -1,6 +1,6 @@
-Select *
-From PorfolioProject1..CovidDeath
-Where continent is not null 
+---Select *
+----From PorfolioProject1..CovidDeath
+----Where continent is not null 
 Order by 3,4
 
 --Select Data that we are going to be using
