@@ -1,0 +1,59 @@
+from telethon.sync import TelegramClient, events
+import re
+import pandas as pd
+
+api_id = 'your_api_id'
+api_hash = 'your_api_hash'
+phone_number = 'your_phone_number'
+
+client = TelegramClient('session_name', api_id, api_hash)
+
+# Connect to the Telegram servers
+client.connect()
+
+# If the user is not authorized, send an authentication code request
+if not client.is_user_authorized():
+    client.send_code_request(phone_number)
+    client.sign_in(phone_number, input('Enter the code: '))
+
+# Define a dictionary with channel names as keys and corresponding patterns as values
+channel_patterns = {
+    'channel1': r'Lead Found!\n\$(\w+) (\w+) Signal 🚀\nStrength:(\d+)\nEntry:(\d+\.\d+)\nTarget:(\d+\.\d+)\nProfit:(\d+%)\nTime: (.+)',
+    'channel2': r'Another Pattern: (\w+) - (\d+\.\d+) - (.+)',
+    # Add more channels and patterns as needed
+}
+
+# Initialize a dictionary to store results for each channel
+results_by_channel = {channel: [] for channel in channel_patterns.keys()}
+
+# Define an event handler for new messages in each channel
+for channel_name, pattern in channel_patterns.items():
+    channel_entity = client.get_entity(channel_name)
+
+    @client.on(events.NewMessage(chats=channel_entity))
+    async def handle_new_message(event, channel_name=channel_name, pattern=pattern):
+        message_text = event.message.text
+
+        # Try the specific pattern for the channel
+        match = re.match(pattern, message_text)
+        if match:
+            # Extract details based on the matched pattern
+            details = match.groups()
+
+            # Append the result to the list for the specific channel
+            results_by_channel[channel_name].append({
+                "Message ID": event.message.id,
+                "Channel Name": channel_name,
+                "Details": details,
+            })
+
+            # Display the updated DataFrame for the specific channel
+            df = pd.DataFrame(results_by_channel[channel_name])
+            print(f"Channel: {channel_name}")
+            print(df)
+
+# Start the event loop
+client.start()
+
+# Run the event loop until interrupted
+client.run_until_disconnected()
